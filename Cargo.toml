@@ -11,6 +11,11 @@ handl-platform = { git = "https://github.com/handl-lang/platform", branch = "mai
 handl-plugin-lib-handl = { git = "https://github.com/handl-lang/platform", branch = "main" }
 handl-lib-ops = { git = "https://github.com/handl-lang/lib-ops", branch = "main" }
 serde_json = "1"
+# The tar atoms: archive read/write + base64 for the encoded payloads.
+base64 = "0.22"
+tar = "0.4"
+tar = "0.4"
+base64 = "0.22"
 
 [patch."https://github.com/handl-lang/platform"]
 handl-platform = { path = "../platform/crates/platform" }
