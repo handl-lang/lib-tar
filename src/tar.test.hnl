@@ -1,0 +1,2 @@
+from "./index" import * as m
+test_empty := assert m.unpack(m.pack([])) = []

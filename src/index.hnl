@@ -6,3 +6,7 @@ op "tar.pack" : Array -> String
   guarantee: IsBase64(output)
 op "tar.unpack" : String -> Array
   guarantee: True
+
+--- pure-handl impls (the module arrows):
+from "./pack.hnl" export pack
+from "./unpack.hnl" export unpack

@@ -1,0 +1,23 @@
+--- internal octal helpers for tar header fields.
+export oct_int := (digits) ~> do {
+  v := 0
+  for c in char.chars(digits) { do {
+    d := str.find("01234567", c)
+    if d >= 0 { do { v := v * 8 + d } } else { do {} }
+  } }
+  v
+}
+export int_oct := (n, width) ~> str.pad_left(octdx(n), width, "0")
+export octdx := (n) ~> do {
+  s := ""
+  v := n
+  if v == 0 { do { s := "0" } } else { do {
+    for _ in char.chars(str.repeat("x", 24)) { do {
+      if v > 0 { do {
+        s := char.at("01234567", v % 8) + s
+        v := math.floor_div(v, 8)
+      } } else { do {} }
+    } }
+  } }
+  s
+}

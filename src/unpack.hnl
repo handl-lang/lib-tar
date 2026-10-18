@@ -1,0 +1,34 @@
+--- `tar.unpack` — pure-Handl tar archive reader (POSIX ustar).
+from "./internal/list.hnl" import list_len
+from "./internal/list.hnl" import ix
+from "./internal/list.hnl" import take
+from "./internal/list.hnl" import drop
+from "./internal/list.hnl" import nz
+from "./internal/list.hnl" import range
+from "./internal/b64.hnl" import b64_enc
+from "./internal/b64.hnl" import b64_dec_ints
+from "./internal/oct.hnl" import oct_int
+
+export unpack := (s) ~> do {
+  bs := b64_dec_ints(s)
+  entries := []
+  off := 0
+  done := false
+  for bi in range(math.floor_div(list_len(bs), 512)) { do {
+    if done { do {} } else { do {
+      base := bi * 512
+      if base < off { do {} } else {
+        if ix(bs, base) == 0 { do { done := true } } else { do {
+          name_bs := nz(take(drop(bs, base), 100))
+          path := bytes.utf8_decode(bytes.from_list(name_bs))
+          size_bs := nz(take(drop(bs, base + 124), 12))
+          sz := oct_int(bytes.utf8_decode(bytes.from_list(size_bs)))
+          dat := take(drop(bs, base + 512), sz)
+          entries := [...entries, { path: path, contents: b64_enc(dat) }]
+          off := base + 512 + math.floor_div(sz + 511, 512) * 512
+        } }
+      }
+    } }
+  } }
+  entries
+}

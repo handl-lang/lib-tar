@@ -1,0 +1,19 @@
+--- `tar.pack` — pure-Handl tar archive builder (POSIX ustar).
+from "./internal/list.hnl" import list_len
+from "./internal/list.hnl" import zeros
+from "./internal/b64.hnl" import b64_enc
+from "./internal/b64.hnl" import b64_dec_ints
+from "./internal/header.hnl" import header
+
+export pack := (entries) ~> do {
+  out := []
+  for e in entries { do {
+    dat := b64_dec_ints(e.contents)
+    out := [...out, ...header(e.path, list_len(dat))]
+    out := [...out, ...dat]
+    pad := 512 - (list_len(dat) % 512)
+    if pad < 512 { do { out := [...out, ...zeros(pad)] } } else { do {} }
+  } }
+  out := [...out, ...zeros(1024)]
+  b64_enc(out)
+}

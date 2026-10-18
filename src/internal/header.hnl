@@ -1,0 +1,40 @@
+--- internal tar header builder (POSIX ustar, 512 bytes as int list).
+from "./list.hnl" import list_len
+from "./list.hnl" import take
+from "./list.hnl" import drop
+from "./list.hnl" import pad_to
+from "./list.hnl" import zeros
+from "./list.hnl" import nz
+from "./oct.hnl" import oct_int
+from "./oct.hnl" import int_oct
+from "./oct.hnl" import octdx
+
+catx := (a, b) ~> [...a, ...b]
+export segx := (s) ~> bytes.to_list(bytes.utf8_encode(s))
+export oct_field := (n, w) ~> pad_to(segx(str.pad_left(octdx(n), w - 1, "0")), w)
+export name_field := (p) ~> pad_to(take(segx(p), 99), 100)
+
+--- Build the 512-byte ustar header for a regular file.
+export header := (path, size) ~> do {
+  h := []
+  h := [...h, ...name_field(path)]
+  h := [...h, ...oct_field(511, 8)]
+  h := [...h, ...oct_field(0, 8)]
+  h := [...h, ...oct_field(0, 8)]
+  h := [...h, ...oct_field(size, 12)]
+  h := [...h, ...oct_field(0, 12)]
+  h := [...h, ...segx("        ")]
+  h := [...h, ...segx("0")]
+  h := [...h, ...zeros(100)]
+  h := [...h, ...segx("ustar")]
+  h := [...h, 0]
+  h := [...h, ...segx("00")]
+  h := [...h, ...segx("root")]
+  h := [...h, ...zeros(28)]
+  h := [...h, ...zeros(32)]
+  h := [...h, ...zeros(8 + 8 + 155 + 12)]
+  s := 0
+  for b in h { do { s := s + b } }
+  chk := [...segx(str.pad_left(octdx(s), 6, "0")), 0, 32]
+  catx(take(h, 148), catx(chk, drop(h, 156)))
+}
