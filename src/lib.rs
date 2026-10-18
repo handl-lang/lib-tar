@@ -22,3 +22,6 @@ pub const TAR_SOURCES: &[(&str, &str, &[&str])] = &[
     ("pack", include_str!("pack.hnl"), &["pack"]),
     ("unpack", include_str!("unpack.hnl"), &["unpack"]),
 ];
+
+/// Flattened single-source `.hnl` (for `stdlib::MODULES` table rows).
+pub const TAR_FLAT_HNL: &str = include_str!("index_flat.hnl");
