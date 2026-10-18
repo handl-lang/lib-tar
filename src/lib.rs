@@ -15,10 +15,9 @@ pub use ops::{TAR_OPS, tar_op_registry};
 /// `handl_module_from_sources`).
 pub const TAR_FUNCS: &[&str] = &["pack","unpack"];
 pub const TAR_SOURCES: &[(&str, &str, &[&str])] = &[
-    ("list", include_str!("internal/list.hnl"), &["list_len","ix","take","drop","catx","zeros","pad_to","nz","range"]),
-    ("b64", include_str!("internal/b64.hnl"), &["b64_enc","b64_dec_ints"]),
     ("oct", include_str!("internal/oct.hnl"), &["oct_int","int_oct","octdx"]),
-    ("header", include_str!("internal/header.hnl"), &["header","segx","name_field","oct_field"]),
+    ("b64b", include_str!("internal/b64b.hnl"), &["b64_enc_bytes","b64_dec_bytes"]),
+    ("headerb", include_str!("internal/headerb.hnl"), &["header","block"]),
     ("pack", include_str!("pack.hnl"), &["pack"]),
     ("unpack", include_str!("unpack.hnl"), &["unpack"]),
 ];

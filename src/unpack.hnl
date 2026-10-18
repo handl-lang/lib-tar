@@ -1,34 +1,46 @@
---- `tar.unpack` — pure-Handl tar archive reader (POSIX ustar).
-from "./internal/list.hnl" import list_len
-from "./internal/list.hnl" import ix
-from "./internal/list.hnl" import take
-from "./internal/list.hnl" import drop
-from "./internal/list.hnl" import nz
-from "./internal/list.hnl" import range
-from "./internal/b64.hnl" import b64_enc
-from "./internal/b64.hnl" import b64_dec_ints
+--- `tar.unpack` — pure-Handl tar archive reader (POSIX ustar, Bytes-native).
+from "./internal/b64b.hnl" import b64_enc_bytes
+from "./internal/b64b.hnl" import b64_dec_bytes
 from "./internal/oct.hnl" import oct_int
 
+--- prefix length to first NUL in a bytes segment.
+nzlen := (b) ~> do {
+  k := 0
+  hit := 0
+  for x in bytes.to_list(b) { do {
+    if hit == 0 {
+      if x == 0 { do { hit := 1 } } else { do { k := k + 1 } }
+    } else { do {} }
+  } }
+  k
+}
+
 export unpack := (s) ~> do {
-  bs := b64_dec_ints(s)
+  bs := b64_dec_bytes(s)
+  total := bytes.len(bs)
   entries := []
   off := 0
   done := false
-  for bi in range(math.floor_div(list_len(bs), 512)) { do {
-    if done { do {} } else { do {
-      base := bi * 512
-      if base < off { do {} } else {
-        if ix(bs, base) == 0 { do { done := true } } else { do {
-          name_bs := nz(take(drop(bs, base), 100))
-          path := bytes.utf8_decode(bytes.from_list(name_bs))
-          size_bs := nz(take(drop(bs, base + 124), 12))
-          sz := oct_int(bytes.utf8_decode(bytes.from_list(size_bs)))
-          dat := take(drop(bs, base + 512), sz)
-          entries := [...entries, { path: path, contents: b64_enc(dat) }]
-          off := base + 512 + math.floor_div(sz + 511, 512) * 512
-        } }
+  while { off: 0, done: false, entries: [] } {
+    (off, done, entries) ~> if done || off >= total {
+      { out: entries }
+    } else {
+      if bytes.at(bs, off) == 0 {
+        { out: entries }
+      } else {
+        do {
+          nb := bytes.slice(bs, off, 100)
+          path := bytes.utf8_decode(bytes.slice(nb, 0, nzlen(nb)))
+          sb := bytes.slice(bs, off + 124, 12)
+          sz := oct_int(bytes.utf8_decode(bytes.slice(sb, 0, nzlen(sb))))
+          dat := bytes.slice(bs, off + 512, sz)
+          { state: {
+            off: off + 512 + math.floor_div(sz + 511, 512) * 512,
+            done: false,
+            entries: [...entries, { path: path, contents: b64_enc_bytes(dat) }]
+          } }
+        }
       }
-    } }
-  } }
-  entries
+    }
+  }
 }

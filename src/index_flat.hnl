@@ -1,64 +1,28 @@
---- internal list helpers — pure handl over plain lists.
-list_len := (xs) ~> do {
-  n := 0
-  for _ in xs { do { n := n + 1 } }
-  n
-}
-ix := (xs, i) ~> do {
-  n := 0
-  out := null
-  for x in xs { do {
-    if n == i { do { out := x } } else { do {} }
-    n := n + 1
+--- internal octal helpers for tar header fields.
+oct_int := (digits) ~> do {
+  v := 0
+  for c in char.chars(digits) { do {
+    d := str.find("01234567", c)
+    if d >= 0 { do { v := v * 8 + d } } else { do {} }
   } }
-  out
+  v
 }
-take := (xs, n) ~> do {
-  out := []
-  i := 0
-  for x in xs { do {
-    if i < n { do { out := [...out, x] } } else { do {} }
-    i := i + 1
+int_oct := (n, width) ~> str.pad_left(octdx(n), width, "0")
+octdx := (n) ~> do {
+  s := ""
+  v := n
+  if v == 0 { do { s := "0" } } else { do {
+    for _ in char.chars(str.repeat("x", 24)) { do {
+      if v > 0 { do {
+        s := char.at("01234567", v % 8) + s
+        v := math.floor_div(v, 8)
+      } } else { do {} }
+    } }
   } }
-  out
-}
-drop := (xs, n) ~> do {
-  out := []
-  i := 0
-  for x in xs { do {
-    if i >= n { do { out := [...out, x] } } else { do {} }
-    i := i + 1
-  } }
-  out
-}
-catx := (a, b) ~> [...a, ...b]
-zeros := (n) ~> do {
-  out := []
-  for _ in char.chars(str.repeat(" ", n)) { do { out := [...out, 0] } }
-  out
-}
-pad_to := (ns, w) ~> catx(ns, zeros(w - list_len(ns)))
-nz := (xs) ~> do {
-  out := []
-  hit := false
-  for x in xs { do {
-    if hit { do {} } else {
-      if x == 0 { do { hit := true } } else { do { out := [...out, x] } }
-    }
-  } }
-  out
-}
-range := (n) ~> do {
-  out := []
-  i := 0
-  for _ in char.chars(str.repeat("x", n)) { do {
-    out := [...out, i]
-    i := i + 1
-  } }
-  out
+  s
 }
 
---- internal byte-level base64 over int lists (0-255) — RFC 4648.
+--- internal byte-level base64 over Bytes values — RFC 4648.
 ALPHA := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 
 emit4 := (n) ~> do {
@@ -68,13 +32,13 @@ emit4 := (n) ~> do {
     + char.at(ALPHA, math.bit_and(n, 63))
 }
 
-b64_enc := (ns) ~> do {
+b64_enc_bytes := (bs) ~> do {
   acc := ""
   n := 0
   cnt := 0
   prev := 0
   last := 0
-  for b in ns { do {
+  for b in bytes.to_list(bs) { do {
     prev := last
     last := b
     if cnt == 0 { do { n := math.shl(b, 16) } } else {
@@ -93,18 +57,18 @@ b64_enc := (ns) ~> do {
       + "=="
   } } else {
     if cnt == 2 { do {
-      n := math.bit_or(math.shl(prev, 16), math.shl(last, 8))
+      m := math.bit_or(math.shl(prev, 16), math.shl(last, 8))
       acc := acc
-        + char.at(ALPHA, math.shr(n, 18))
-        + char.at(ALPHA, math.bit_and(math.shr(n, 12), 63))
-        + char.at(ALPHA, math.bit_and(math.shr(n, 6), 63))
+        + char.at(ALPHA, math.shr(m, 18))
+        + char.at(ALPHA, math.bit_and(math.shr(m, 12), 63))
+        + char.at(ALPHA, math.bit_and(math.shr(m, 6), 63))
         + "="
     } } else { do {} }
   }
   acc
 }
 
-b64_dec_ints := (s) ~> do {
+b64_dec_bytes := (s) ~> do {
   out := []
   q0 := 0
   q1 := 0
@@ -132,110 +96,119 @@ b64_dec_ints := (s) ~> do {
     out := [...out, math.bit_and(math.shr(math.bit_or(q0, q1), 16), 255)]
   } } else {
     if cnt == 3 { do {
-      n := math.bit_or(math.bit_or(q0, q1), q2)
+      m := math.bit_or(math.bit_or(q0, q1), q2)
       out := [...out,
-        math.bit_and(math.shr(n, 16), 255),
-        math.bit_and(math.shr(n, 8), 255)]
+        math.bit_and(math.shr(m, 16), 255),
+        math.bit_and(math.shr(m, 8), 255)]
     } } else { do {} }
   }
-  out
+  bytes.from_list(out)
 }
 
---- internal octal helpers for tar header fields.
-oct_int := (digits) ~> do {
-  v := 0
-  for c in char.chars(digits) { do {
-    d := str.find("01234567", c)
-    if d >= 0 { do { v := v * 8 + d } } else { do {} }
-  } }
-  v
+--- internal tar header builder (POSIX ustar) — produces Bytes segments.
+
+seg := (s) ~> bytes.utf8_encode(s)
+zeros := (n) ~> do {
+  z := []
+  for _ in char.chars(str.repeat("x", n)) { do { z := [...z, 0] } }
+  z
 }
-int_oct := (n, width) ~> str.pad_left(octdx(n), width, "0")
-octdx := (n) ~> do {
-  s := ""
-  v := n
-  if v == 0 { do { s := "0" } } else { do {
-    for _ in char.chars(str.repeat("x", 24)) { do {
-      if v > 0 { do {
-        s := char.at("01234567", v % 8) + s
-        v := math.floor_div(v, 8)
-      } } else { do {} }
-    } }
-  } }
-  s
+zeros512 := bytes.from_list(zeros(512))
+zbytes := (n) ~> if n <= 0 { bytes.from_list([]) } else { bytes.slice(zeros512, 0, n) }
+oct_field := (n, w) ~> do {
+  s := str.pad_left(octdx(n), w - 1, "0")
+  bytes.concat(seg(s), zbytes(w - bytes.len(seg(s))))
+}
+name_field := (p) ~> do {
+  b := seg(p)
+  if bytes.len(b) > 99 { do { b := bytes.slice(b, 0, 99) } } else { do {} }
+  bytes.concat(b, zbytes(100 - bytes.len(b)))
 }
 
---- internal tar header builder (POSIX ustar, 512 bytes as int list).
-
-catx := (a, b) ~> [...a, ...b]
-segx := (s) ~> bytes.to_list(bytes.utf8_encode(s))
-oct_field := (n, w) ~> pad_to(segx(str.pad_left(octdx(n), w - 1, "0")), w)
-name_field := (p) ~> pad_to(take(segx(p), 99), 100)
-
---- Build the 512-byte ustar header for a regular file.
-header := (path, size) ~> do {
-  h := []
-  h := [...h, ...name_field(path)]
-  h := [...h, ...oct_field(511, 8)]
-  h := [...h, ...oct_field(0, 8)]
-  h := [...h, ...oct_field(0, 8)]
-  h := [...h, ...oct_field(size, 12)]
-  h := [...h, ...oct_field(0, 12)]
-  h := [...h, ...segx("        ")]
-  h := [...h, ...segx("0")]
-  h := [...h, ...zeros(100)]
-  h := [...h, ...segx("ustar")]
-  h := [...h, 0]
-  h := [...h, ...segx("00")]
-  h := [...h, ...segx("root")]
-  h := [...h, ...zeros(28)]
-  h := [...h, ...zeros(32)]
-  h := [...h, ...zeros(8 + 8 + 155 + 12)]
+header := (path, sz) ~> do {
+  h := bytes.concat(
+    bytes.concat(
+      bytes.concat(name_field(path), oct_field(511, 8)),
+      bytes.concat(oct_field(0, 8), oct_field(0, 8))
+    ),
+    bytes.concat(
+      bytes.concat(oct_field(sz, 12), oct_field(0, 12)),
+      bytes.concat(seg("        "), seg("0"))
+    )
+  )
+  h := bytes.concat(
+    bytes.concat(h, zbytes(100)),
+    bytes.concat(
+      bytes.concat(seg("ustar"), bytes.from_list([0])),
+      bytes.concat(seg("00"), bytes.concat(seg("root"), zbytes(28)))
+    )
+  )
+  h := bytes.concat(h, zbytes(32 + 8 + 8 + 155 + 12))
   s := 0
-  for b in h { do { s := s + b } }
-  chk := [...segx(str.pad_left(octdx(s), 6, "0")), 0, 32]
-  catx(take(h, 148), catx(chk, drop(h, 156)))
+  for b in bytes.to_list(h) { do { s := s + b } }
+  chk := bytes.concat(seg(str.pad_left(octdx(s), 6, "0")), bytes.from_list([0, 32]))
+  bytes.concat(bytes.slice(h, 0, 148), bytes.concat(chk, bytes.slice(h, 156, 512 - 156)))
 }
 
---- `tar.pack` — pure-Handl tar archive builder (POSIX ustar).
+block := (n) ~> zbytes(n)
+
+--- `tar.pack` — pure-Handl tar archive builder (POSIX ustar, Bytes-native).
 
 export pack := (entries) ~> do {
-  out := []
+  out := bytes.from_list([])
   for e in entries { do {
-    dat := b64_dec_ints(e.contents)
-    out := [...out, ...header(e.path, list_len(dat))]
-    out := [...out, ...dat]
-    pad := 512 - (list_len(dat) % 512)
-    if pad < 512 { do { out := [...out, ...zeros(pad)] } } else { do {} }
+    dat := b64_dec_bytes(e.contents)
+    out := bytes.concat(out, header(e.path, bytes.len(dat)))
+    out := bytes.concat(out, dat)
+    pad := 512 - (bytes.len(dat) % 512)
+    if pad < 512 { do { out := bytes.concat(out, block(pad)) } } else { do {} }
   } }
-  out := [...out, ...zeros(1024)]
-  b64_enc(out)
+  out := bytes.concat(out, block(1024))
+  b64_enc_bytes(out)
 }
 
---- `tar.unpack` — pure-Handl tar archive reader (POSIX ustar).
+--- `tar.unpack` — pure-Handl tar archive reader (POSIX ustar, Bytes-native).
+
+--- prefix length to first NUL in a bytes segment.
+nzlen := (b) ~> do {
+  k := 0
+  hit := 0
+  for x in bytes.to_list(b) { do {
+    if hit == 0 {
+      if x == 0 { do { hit := 1 } } else { do { k := k + 1 } }
+    } else { do {} }
+  } }
+  k
+}
 
 export unpack := (s) ~> do {
-  bs := b64_dec_ints(s)
+  bs := b64_dec_bytes(s)
+  total := bytes.len(bs)
   entries := []
   off := 0
   done := false
-  for bi in range(math.floor_div(list_len(bs), 512)) { do {
-    if done { do {} } else { do {
-      base := bi * 512
-      if base < off { do {} } else {
-        if ix(bs, base) == 0 { do { done := true } } else { do {
-          name_bs := nz(take(drop(bs, base), 100))
-          path := bytes.utf8_decode(bytes.from_list(name_bs))
-          size_bs := nz(take(drop(bs, base + 124), 12))
-          sz := oct_int(bytes.utf8_decode(bytes.from_list(size_bs)))
-          dat := take(drop(bs, base + 512), sz)
-          entries := [...entries, { path: path, contents: b64_enc(dat) }]
-          off := base + 512 + math.floor_div(sz + 511, 512) * 512
-        } }
+  while { off: 0, done: false, entries: [] } {
+    (off, done, entries) ~> if done || off >= total {
+      { out: entries }
+    } else {
+      if bytes.at(bs, off) == 0 {
+        { out: entries }
+      } else {
+        do {
+          nb := bytes.slice(bs, off, 100)
+          path := bytes.utf8_decode(bytes.slice(nb, 0, nzlen(nb)))
+          sb := bytes.slice(bs, off + 124, 12)
+          sz := oct_int(bytes.utf8_decode(bytes.slice(sb, 0, nzlen(sb))))
+          dat := bytes.slice(bs, off + 512, sz)
+          { state: {
+            off: off + 512 + math.floor_div(sz + 511, 512) * 512,
+            done: false,
+            entries: [...entries, { path: path, contents: b64_enc_bytes(dat) }]
+          } }
+        }
       }
-    } }
-  } }
-  entries
+    }
+  }
 }
 
 --- tar.pack -- pack an array of {path, contents} objects into a base64 tar archive string.

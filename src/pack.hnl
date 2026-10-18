@@ -1,19 +1,18 @@
---- `tar.pack` — pure-Handl tar archive builder (POSIX ustar).
-from "./internal/list.hnl" import list_len
-from "./internal/list.hnl" import zeros
-from "./internal/b64.hnl" import b64_enc
-from "./internal/b64.hnl" import b64_dec_ints
-from "./internal/header.hnl" import header
+--- `tar.pack` — pure-Handl tar archive builder (POSIX ustar, Bytes-native).
+from "./internal/b64b.hnl" import b64_enc_bytes
+from "./internal/b64b.hnl" import b64_dec_bytes
+from "./internal/headerb.hnl" import header
+from "./internal/headerb.hnl" import block
 
 export pack := (entries) ~> do {
-  out := []
+  out := bytes.from_list([])
   for e in entries { do {
-    dat := b64_dec_ints(e.contents)
-    out := [...out, ...header(e.path, list_len(dat))]
-    out := [...out, ...dat]
-    pad := 512 - (list_len(dat) % 512)
-    if pad < 512 { do { out := [...out, ...zeros(pad)] } } else { do {} }
+    dat := b64_dec_bytes(e.contents)
+    out := bytes.concat(out, header(e.path, bytes.len(dat)))
+    out := bytes.concat(out, dat)
+    pad := 512 - (bytes.len(dat) % 512)
+    if pad < 512 { do { out := bytes.concat(out, block(pad)) } } else { do {} }
   } }
-  out := [...out, ...zeros(1024)]
-  b64_enc(out)
+  out := bytes.concat(out, block(1024))
+  b64_enc_bytes(out)
 }

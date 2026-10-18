@@ -1,4 +1,4 @@
---- internal byte-level base64 over int lists (0-255) — RFC 4648.
+--- internal byte-level base64 over Bytes values — RFC 4648.
 ALPHA := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 
 emit4 := (n) ~> do {
@@ -8,13 +8,13 @@ emit4 := (n) ~> do {
     + char.at(ALPHA, math.bit_and(n, 63))
 }
 
-export b64_enc := (ns) ~> do {
+export b64_enc_bytes := (bs) ~> do {
   acc := ""
   n := 0
   cnt := 0
   prev := 0
   last := 0
-  for b in ns { do {
+  for b in bytes.to_list(bs) { do {
     prev := last
     last := b
     if cnt == 0 { do { n := math.shl(b, 16) } } else {
@@ -33,18 +33,18 @@ export b64_enc := (ns) ~> do {
       + "=="
   } } else {
     if cnt == 2 { do {
-      n := math.bit_or(math.shl(prev, 16), math.shl(last, 8))
+      m := math.bit_or(math.shl(prev, 16), math.shl(last, 8))
       acc := acc
-        + char.at(ALPHA, math.shr(n, 18))
-        + char.at(ALPHA, math.bit_and(math.shr(n, 12), 63))
-        + char.at(ALPHA, math.bit_and(math.shr(n, 6), 63))
+        + char.at(ALPHA, math.shr(m, 18))
+        + char.at(ALPHA, math.bit_and(math.shr(m, 12), 63))
+        + char.at(ALPHA, math.bit_and(math.shr(m, 6), 63))
         + "="
     } } else { do {} }
   }
   acc
 }
 
-export b64_dec_ints := (s) ~> do {
+export b64_dec_bytes := (s) ~> do {
   out := []
   q0 := 0
   q1 := 0
@@ -72,11 +72,11 @@ export b64_dec_ints := (s) ~> do {
     out := [...out, math.bit_and(math.shr(math.bit_or(q0, q1), 16), 255)]
   } } else {
     if cnt == 3 { do {
-      n := math.bit_or(math.bit_or(q0, q1), q2)
+      m := math.bit_or(math.bit_or(q0, q1), q2)
       out := [...out,
-        math.bit_and(math.shr(n, 16), 255),
-        math.bit_and(math.shr(n, 8), 255)]
+        math.bit_and(math.shr(m, 16), 255),
+        math.bit_and(math.shr(m, 8), 255)]
     } } else { do {} }
   }
-  out
+  bytes.from_list(out)
 }

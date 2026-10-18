@@ -1,0 +1,48 @@
+--- internal tar header builder (POSIX ustar) — produces Bytes segments.
+from "./oct.hnl" import oct_int
+from "./oct.hnl" import octdx
+
+seg := (s) ~> bytes.utf8_encode(s)
+zeros := (n) ~> do {
+  z := []
+  for _ in char.chars(str.repeat("x", n)) { do { z := [...z, 0] } }
+  z
+}
+zeros512 := bytes.from_list(zeros(512))
+zbytes := (n) ~> if n <= 0 { bytes.from_list([]) } else { bytes.slice(zeros512, 0, n) }
+oct_field := (n, w) ~> do {
+  s := str.pad_left(octdx(n), w - 1, "0")
+  bytes.concat(seg(s), zbytes(w - bytes.len(seg(s))))
+}
+name_field := (p) ~> do {
+  b := seg(p)
+  if bytes.len(b) > 99 { do { b := bytes.slice(b, 0, 99) } } else { do {} }
+  bytes.concat(b, zbytes(100 - bytes.len(b)))
+}
+
+export header := (path, sz) ~> do {
+  h := bytes.concat(
+    bytes.concat(
+      bytes.concat(name_field(path), oct_field(511, 8)),
+      bytes.concat(oct_field(0, 8), oct_field(0, 8))
+    ),
+    bytes.concat(
+      bytes.concat(oct_field(sz, 12), oct_field(0, 12)),
+      bytes.concat(seg("        "), seg("0"))
+    )
+  )
+  h := bytes.concat(
+    bytes.concat(h, zbytes(100)),
+    bytes.concat(
+      bytes.concat(seg("ustar"), bytes.from_list([0])),
+      bytes.concat(seg("00"), bytes.concat(seg("root"), zbytes(28)))
+    )
+  )
+  h := bytes.concat(h, zbytes(32 + 8 + 8 + 155 + 12))
+  s := 0
+  for b in bytes.to_list(h) { do { s := s + b } }
+  chk := bytes.concat(seg(str.pad_left(octdx(s), 6, "0")), bytes.from_list([0, 32]))
+  bytes.concat(bytes.slice(h, 0, 148), bytes.concat(chk, bytes.slice(h, 156, 512 - 156)))
+}
+
+export block := (n) ~> zbytes(n)
