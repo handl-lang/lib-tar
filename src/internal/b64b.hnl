@@ -45,7 +45,7 @@ export b64_enc_bytes := (bs) ~> do {
 }
 
 export b64_dec_bytes := (s) ~> do {
-  out := []
+  out := bytes.from_list([])
   q0 := 0
   q1 := 0
   q2 := 0
@@ -58,10 +58,10 @@ export b64_dec_bytes := (s) ~> do {
         if cnt == 1 { do { q1 := math.shl(v, 12) } } else {
           if cnt == 2 { do { q2 := math.shl(v, 6) } } else { do {
             n := math.bit_or(math.bit_or(q0, q1), math.bit_or(q2, v))
-            out := [...out,
+            out := bytes.concat(out, bytes.from_list([
               math.bit_and(math.shr(n, 16), 255),
               math.bit_and(math.shr(n, 8), 255),
-              math.bit_and(n, 255)]
+              math.bit_and(n, 255)]))
           } }
         }
       }
@@ -69,14 +69,14 @@ export b64_dec_bytes := (s) ~> do {
     } }
   } }
   if cnt == 2 { do {
-    out := [...out, math.bit_and(math.shr(math.bit_or(q0, q1), 16), 255)]
+    out := bytes.concat(out, bytes.from_list([math.bit_and(math.shr(math.bit_or(q0, q1), 16), 255)]))
   } } else {
     if cnt == 3 { do {
       m := math.bit_or(math.bit_or(q0, q1), q2)
-      out := [...out,
+      out := bytes.concat(out, bytes.from_list([
         math.bit_and(math.shr(m, 16), 255),
-        math.bit_and(math.shr(m, 8), 255)]
+        math.bit_and(math.shr(m, 8), 255)]))
     } } else { do {} }
   }
-  bytes.from_list(out)
+  out
 }
