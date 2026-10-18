@@ -15,9 +15,9 @@ serde_json = "1"
 base64 = "0.22"
 tar = "0.4"
 
+[patch."https://github.com/handl-lang/lib-ops"]
+handl-lib-ops = { path = "../lib-ops" }
+
 [patch."https://github.com/handl-lang/platform"]
 handl-platform = { path = "../platform/crates/platform" }
 handl-plugin-lib-handl = { path = "../platform/crates/plugin-lib-handl" }
-
-[patch."https://github.com/handl-lang/lib-ops"]
-handl-lib-ops = { path = "../lib-ops" }

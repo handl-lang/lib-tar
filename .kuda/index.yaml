@@ -1,0 +1,21 @@
+name: lib-tar
+root: /home/luis/GitHub/handl-lang/lib-tar
+purpose: ''
+modules:
+- handl-lib-tar
+- lib-tar
+commands:
+- cargo check
+- cargo test --workspace
+provenance:
+  files:
+  - Cargo.toml
+  - src/ops.rs
+  - src/lib.rs
+  hashes:
+  - 72fdacb68d94f2961e399c9de7930ba86f44f51e
+  - 3a13b985095b1dd089595f5bea697433dc846134
+  - a8a5077eece5628c9811be118d90e295772fa49e
+  commit_sha: c0a18e0c77a8c30920fac646f93600cdbf2a9f56
+  generated_at: '1792281230'
+  generator: kuda/0.1.0
