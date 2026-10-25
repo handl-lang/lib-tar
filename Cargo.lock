@@ -49,15 +49,3 @@ version = "0.0.0"
 [[patch.unused]]
 name = "sepia-testkit"
 version = "0.0.0"
-
-[[patch.unused]]
-name = "handl-platform"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "handl-plugin-lib-handl"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "handl-lib-ops"
-version = "0.1.0"
