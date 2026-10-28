@@ -16,3 +16,7 @@ ci.sh           bupha entry: hnl gate + cargo test
 
 **Transitional** — plan `stdlib-lib-migration` Phase 7 rewrites the Rust ops as
 `ffi.call` and deletes the crate.
+
+## License
+
+MIT.
