@@ -2,9 +2,9 @@
 --- tar.unpack -- unpack a base64 tar archive string into an array of {path, contents} objects.
 cap "tar.pack"
 cap "tar.unpack"
-op "tar.pack" : Array -> String
+op "tar.pack" : Array ~> String
   guarantee: IsBase64(output)
-op "tar.unpack" : String -> Array
+op "tar.unpack" : String ~> Array
   guarantee: True
 
 --- pure-handl impls (the module arrows):
