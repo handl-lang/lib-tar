@@ -1,1 +1,1 @@
-{ modules: ["tar"], description: "Tar archive reading and writing for the Handl platform.", license: "MIT" }
+{ modules: ["tar"], name: "tar", description: "Tar archive reading and writing for the Handl platform.", license: "MIT" }
