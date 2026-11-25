@@ -13,7 +13,7 @@
 | `src/index_flat.hnl` | flattened variant |
 | `src/tar.test.hnl` | the .hnl test suite |
 | `src/docs/tar.yml` | package docs |
-| `pkg.hnl`, `scripts/hnl-gate.sh`, `ci.sh` | manifest / gate / bupha entry |
+| `pkg.hnl`, `scripts/hnl-gate.sh`, `workflows/gate.yaml` | manifest / gate / bupha entry |
 
 ## Contract
 
